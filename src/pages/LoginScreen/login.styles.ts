@@ -1,5 +1,4 @@
 import styled, { keyframes } from 'styled-components'
-import * as Form from '@radix-ui/react-form'
 
 const fadeIn = keyframes`
   from {
