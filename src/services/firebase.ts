@@ -14,6 +14,18 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Debug
+console.log('Firebase Config:', {
+  apiKey: firebaseConfig.apiKey?.slice(0, 5) + '...',
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId
+});
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Para debug
+auth.onAuthStateChanged((user) => {
+  console.log('Auth state changed:', user);
+});

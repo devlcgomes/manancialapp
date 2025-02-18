@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as Form from '@radix-ui/react-form';
 import { Eye, EyeSlash } from '@phosphor-icons/react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { 
   LoginContainer, 
   LoginBox, 
@@ -25,11 +28,44 @@ interface LoginFormData {
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const { register, handleSubmit } = useForm<LoginFormData>();
+  const [isLoading, setIsLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
+  const { signIn, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
-  const onSubmit = (data: LoginFormData) => {
-    console.log(data);
-    // Aqui implementaremos a lógica do Firebase
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setIsLoading(true);
+      await signIn(data.email, data.password);
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Erro completo:', error);
+      
+      // Tratamento de erros específicos do Firebase
+      if (error.code === 'auth/wrong-password') {
+        toast.error('Senha incorreta');
+      } else if (error.code === 'auth/user-not-found') {
+        toast.error('Usuário não encontrado');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Email inválido');
+      } else {
+        toast.error('Erro ao fazer login: ' + error.message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast.error('Erro ao fazer login com Google.');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -51,9 +87,18 @@ export default function Login() {
                 <input 
                   type="email" 
                   placeholder="Digite seu e-mail de acesso"
-                  {...register('email')}
+                  {...register('email', { 
+                    required: 'E-mail é obrigatório',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'E-mail inválido'
+                    }
+                  })}
                 />
               </Form.Control>
+              {errors.email && (
+                <Form.Message>{errors.email.message}</Form.Message>
+              )}
             </Form.Field>
           </InputContainer>
 
@@ -78,15 +123,19 @@ export default function Login() {
             </Form.Field>
           </InputContainer>
 
-          <SignInButton type="submit">
-            Entrar para Adorar
+          <SignInButton type="submit" disabled={isLoading}>
+            {isLoading ? 'Entrando...' : 'Entrar para Adorar'}
           </SignInButton>
         </Form.Root>
 
         <Divider>ou acesse com</Divider>
 
         <SocialLoginContainer>
-          <SocialButton type="button">
+          <SocialButton 
+            type="button" 
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+          >
             <img src="/google-icon.svg" alt="Google" />
             Entrar com Google
           </SocialButton>
